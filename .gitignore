@@ -1,0 +1,8 @@
+.DS_Store
+__debug_bin
+
+/bin
+/.vscode
+/.idea
+/config
+/helm/config

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: soul-mirror-config
+  labels:
+  {{- include "sm.labels" . | nindent 4 }}
+data:
+  cluster.yaml: |-
+  {{ .Files.Get "config/cluster.yaml"| indent 4 }}
+  mirror.yaml: |-
+  {{ .Files.Get "config/mirror.yaml"| indent 4 }}

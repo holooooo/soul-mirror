@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: soul-mirror
+  labels:
+    {{- include "sm.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: soul-mirror
+  replicas: {{ .Values.replicaCount }}
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "9527"
+        prometheus.io/scrape: "true"
+      labels:
+        app: soul-mirror
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      serviceAccountName: soul-mirror
+      containers:
+        - command:
+            - /manager
+          args:
+            {{- if .Values.config.loglevel }}
+            - --loglevel
+            - {{ toString .Values.config.loglevel }}
+            {{- end}}
+            - --enable-election
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.Version }}"
+          name: {{ .Chart.Name }}
+          securityContext:
+            allowPrivilegeEscalation: false
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9527
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9527
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: /config
+              name: sm-config
+            - mountPath: /kube
+              name: kubeconfig
+      volumes:
+        - name: sm-config
+          configMap:
+            name: soul-mirror-config
+        - name: kubeconfig
+          secret:
+            secretName: soul-mirror-kubeconfig
+      terminationGracePeriodSeconds: 10
